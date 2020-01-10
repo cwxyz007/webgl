@@ -1,0 +1,11 @@
+{
+  "name": "webgl",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/cwxyz007/webgl.git",
+  "author": "xli.gem <x.li.gem@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "commander": "^4.1.0"
+  }
+}

@@ -4,11 +4,112 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Document</title>
+    <title>WebGL start</title>
+    <style>
+      canvas {
+        border: 1px solid gray;
+      }
+    </style>
   </head>
   <body>
+    <script src="../lib/gl-matrix.js"></script>
     <script type="module">
       import { WebGL } from '../src/canvas.js'
+
+      const webgl = new WebGL()
+      const gl = webgl.gl
+      webgl.clear()
+      webgl.mount(document.body)
+
+      const vsSource = `
+        attribute vec4 aVertexPosition;
+        uniform mat4 uModelViewMatrix;
+        uniform mat4 uProjectionMatrix;
+
+        void main() {
+          gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+        }
+      `
+
+      const fsSource = `
+        void main() {
+          gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+        }
+      `
+
+      const shaderProgram = webgl.initShaderProgram(vsSource, fsSource)
+      const programInfo = {
+        program: shaderProgram,
+        attribLocations: {
+          vertexPosition: gl.getAttribLocation(shaderProgram, 'aVertexPosition')
+        },
+        uniformLocations: {
+          projectionMatrix: gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
+          modelViewMatrix: gl.getUniformLocation(shaderProgram, 'uModelViewMatrix')
+        }
+      }
+
+      drawScene(programInfo, initBudders())
+
+      function initBudders() {
+        const positionBuffer = gl.createBuffer()
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer)
+
+        const positions = [-1.0, 1.0, 1.0, 1.0, -1.0, -1.0, 1.0, -1.0]
+
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW)
+
+        return {
+          position: positionBuffer
+        }
+      }
+
+      function drawScene(programInfo, buffers) {
+        webgl.clear()
+
+        const projectionMatrix = mat4.create()
+        {
+          const fov = (45 * Math.PI) / 180
+          const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight
+          const zNear = 0.1
+          const zFar = 100.0
+
+          mat4.perspective(projectionMatrix, fov, aspect, zNear, zFar)
+        }
+
+        const modelViewMatrix = mat4.create()
+        {
+          mat4.translate(modelViewMatrix, modelViewMatrix, [-0.0, 0.0, -6.0])
+        }
+
+        const numComponents = 2
+        const type = gl.FLOAT
+        const normalize = false
+        const stride = 0
+        const offset = 0
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffers.position)
+        gl.vertexAttribPointer(
+          programInfo.attribLocations.vertexPosition,
+          numComponents,
+          type,
+          normalize,
+          stride,
+          offset
+        )
+
+        gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition)
+
+        gl.useProgram(programInfo.program)
+        gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, projectionMatrix)
+        gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, modelViewMatrix)
+
+        {
+          const offset = 0
+          const vertexCount = 4
+          gl.drawArrays(gl.TRIANGLE_STRIP, offset, vertexCount)
+        }
+      }
     </script>
   </body>
 </html>

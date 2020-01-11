@@ -83,13 +83,27 @@ export class WebGL {
       element_array_buffer: this.gl.ELEMENT_ARRAY_BUFFER
     }
 
-    target = targetMap[target] | this.gl.ARRAY_BUFFER
+    target = targetMap[target] || this.gl.ARRAY_BUFFER
+    usage = usageMap[usage] || this.gl.STATIC_DRAW
 
     const glBuffer = this.gl.createBuffer()
     this.gl.bindBuffer(target, glBuffer)
-    this.gl.bufferData(target, new Float32Array(buffer), usageMap[usage] || this.gl.STATIC_DRAW)
+    this.gl.bufferData(target, buffer, usage)
 
     return glBuffer
+  }
+
+  bindArrayBuffer({ buffer, location, numComponents, type, normalize, stride, offset } = {}) {
+    numComponents = numComponents || 3
+    type = type || this.gl.FLOAT
+    normalize = !!normalize
+    stride = stride || 0
+    offset = stride || 0
+
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffer)
+    this.gl.vertexAttribPointer(location, numComponents, type, normalize, stride, offset)
+
+    this.gl.enableVertexAttribArray(location)
   }
 
   /**

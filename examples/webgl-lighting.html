@@ -24,25 +24,43 @@
 
       const vsSource = `
         attribute vec4 aVertexPosition;
+        attribute vec3 aVertexNormal;
         attribute vec2 aTextureCoord;
 
+        uniform mat4 uNormalMatrix;
         uniform mat4 uModelViewMatrix;
         uniform mat4 uProjectionMatrix;
 
         varying highp vec2 vTextureCoord;
+        varying highp vec3 vLighting;
 
         void main() {
           gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
           vTextureCoord = aTextureCoord;
+
+          // Apply lighting effect
+
+          highp vec3 ambientLight = vec3(0.3, 0.3, 0.3);
+          highp vec3 directionalLightColor = vec3(1, 1, 1);
+          highp vec3 directionalVector = normalize(vec3(0.85, 0.8, 0.75));
+
+          highp vec4 transformedNormal = uNormalMatrix * vec4(aVertexNormal, 1.0);
+
+          highp float directional = max(dot(transformedNormal.xyz, directionalVector), 0.0);
+          vLighting = ambientLight + (directionalLightColor * directional);
         }
       `
 
       const fsSource = `
         varying highp vec2 vTextureCoord;
+        varying highp vec3 vLighting;
+
         uniform sampler2D uSampler;
 
         void main() {
-          gl_FragColor = texture2D(uSampler, vTextureCoord);
+          highp vec4 texelColor = texture2D(uSampler, vTextureCoord);
+
+          gl_FragColor = vec4(texelColor.rgb * vLighting, texelColor.a);
         }
       `
 
@@ -51,11 +69,13 @@
         program: shaderProgram,
         attribLocations: {
           vertexPosition: gl.getAttribLocation(shaderProgram, 'aVertexPosition'),
-          textureCoord: gl.getAttribLocation(shaderProgram, 'aTextureCoord')
+          textureCoord: gl.getAttribLocation(shaderProgram, 'aTextureCoord'),
+          vertexNormal: gl.getAttribLocation(shaderProgram, 'aVertexNormal')
         },
         uniformLocations: {
           projectionMatrix: gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
           modelViewMatrix: gl.getUniformLocation(shaderProgram, 'uModelViewMatrix'),
+          normalMatrix: gl.getUniformLocation(shaderProgram, 'uNormalMatrix'),
           uSampler: gl.getUniformLocation(shaderProgram, 'uSampler')
         }
       }
@@ -168,10 +188,97 @@
           23 // left
         ]
 
+        const vertexNormals = [
+          // Front
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          0.0,
+          1.0,
+
+          // Back
+          0.0,
+          0.0,
+          -1.0,
+          0.0,
+          0.0,
+          -1.0,
+          0.0,
+          0.0,
+          -1.0,
+          0.0,
+          0.0,
+          -1.0,
+
+          // Top
+          0.0,
+          1.0,
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+
+          // Bottom
+          0.0,
+          -1.0,
+          0.0,
+          0.0,
+          -1.0,
+          0.0,
+          0.0,
+          -1.0,
+          0.0,
+          0.0,
+          -1.0,
+          0.0,
+
+          // Right
+          1.0,
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          0.0,
+
+          // Left
+          -1.0,
+          0.0,
+          0.0,
+          -1.0,
+          0.0,
+          0.0,
+          -1.0,
+          0.0,
+          0.0,
+          -1.0,
+          0.0,
+          0.0
+        ]
+
         return {
           position: webgl.createBuffer(new Float32Array(positions)),
           textureCoord: webgl.createBuffer(new Float32Array(textureCoordinates)),
-          indices: webgl.createBuffer(new Uint16Array(indices), 'element_array_buffer')
+          indices: webgl.createBuffer(new Uint16Array(indices), 'element_array_buffer'),
+          normal: webgl.createBuffer(new Float32Array(vertexNormals))
         }
       }
 
@@ -214,14 +321,26 @@
           numComponents: 2
         })
 
+        // Bind color buffer
+        webgl.bindArrayBuffer({
+          buffer: buffers.normal,
+          location: programInfo.attribLocations.vertexNormal,
+          numComponents: 3
+        })
+
         // Bind indices buffer
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.indices)
+
+        const normalMatrix = mat4.create()
+        mat4.invert(normalMatrix, modelViewMatrix)
+        mat4.transpose(normalMatrix, normalMatrix)
 
         gl.useProgram(programInfo.program)
 
         gl.activeTexture(gl.TEXTURE0)
         gl.bindTexture(gl.TEXTURE_2D, texture)
         gl.uniform1i(programInfo.uniformLocations.uSampler, 0)
+        gl.uniformMatrix4fv(programInfo.uniformLocations.normalMatrix, false, normalMatrix)
         gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, projectionMatrix)
         gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, modelViewMatrix)
 

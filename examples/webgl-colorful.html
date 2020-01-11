@@ -81,8 +81,8 @@
 
         // ! 为什么颜色会渐变？
         return {
-          position: webgl.createBuffer(positions),
-          color: webgl.createBuffer(colors)
+          position: webgl.createBuffer(new Float32Array(positions)),
+          color: webgl.createBuffer(new Float32Array(colors))
         }
       }
 

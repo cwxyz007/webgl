@@ -67,6 +67,52 @@ export class WebGL {
 
   /**
    *
+   * @param {Array} buffer
+   * @param {'array_buffer' | 'element_array_buffer'} [target]
+   * @param {'static_draw' | 'dynamic_draw' | 'stream_draw'} [usage]
+   */
+  createBuffer(buffer, target, usage) {
+    const usageMap = {
+      static_draw: this.gl.STATIC_DRAW,
+      dynamic_draw: this.gl.DYNAMIC_DRAW,
+      stream_draw: this.gl.STREAM_DRAW
+    }
+
+    const targetMap = {
+      array_buffer: this.gl.ARRAY_BUFFER,
+      element_array_buffer: this.gl.ELEMENT_ARRAY_BUFFER
+    }
+
+    target = targetMap[target] | this.gl.ARRAY_BUFFER
+
+    const glBuffer = this.gl.createBuffer()
+    this.gl.bindBuffer(target, glBuffer)
+    this.gl.bufferData(target, new Float32Array(buffer), usageMap[usage] || this.gl.STATIC_DRAW)
+
+    return glBuffer
+  }
+
+  /**
+   *
+   * @param {(deltaTime: number) => void} renderCb
+   */
+  render(renderCb) {
+    let then = 0
+
+    const loop = (now) => {
+      now *= 0.001
+
+      const deltaTime = now - then
+      then = now
+      renderCb(deltaTime)
+      requestAnimationFrame(loop)
+    }
+
+    requestAnimationFrame(loop)
+  }
+
+  /**
+   *
    * @param {HTMLElement} el
    */
   mount(el) {

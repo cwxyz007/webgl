@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>WebGL Texture</title>
+    <style>
+      canvas {
+        border: 1px solid gray;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../lib/gl-matrix.js"></script>
+    <script type="module">
+      import { WebGL } from '../src/canvas.js'
+      import { createCube } from '../src/utils.js'
+
+      const webgl = new WebGL()
+      const gl = webgl.gl
+      webgl.clear()
+      webgl.mount(document.body)
+
+      const vsSource = `
+        attribute vec4 aVertexPosition;
+        attribute vec2 aTextureCoord;
+
+        uniform mat4 uModelViewMatrix;
+        uniform mat4 uProjectionMatrix;
+
+        varying highp vec2 vTextureCoord;
+
+        void main() {
+          gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+          vTextureCoord = aTextureCoord;
+        }
+      `
+
+      const fsSource = `
+        varying highp vec2 vTextureCoord;
+        uniform sampler2D uSampler;
+
+        void main() {
+          gl_FragColor = texture2D(uSampler, vTextureCoord);
+        }
+      `
+
+      const shaderProgram = webgl.initShaderProgram(vsSource, fsSource)
+      const programInfo = {
+        program: shaderProgram,
+        attribLocations: {
+          vertexPosition: gl.getAttribLocation(shaderProgram, 'aVertexPosition'),
+          textureCoord: gl.getAttribLocation(shaderProgram, 'aTextureCoord')
+        },
+        uniformLocations: {
+          projectionMatrix: gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
+          modelViewMatrix: gl.getUniformLocation(shaderProgram, 'uModelViewMatrix'),
+          uSampler: gl.getUniformLocation(shaderProgram, 'uSampler')
+        }
+      }
+
+      const buffers = initBuffers()
+      const texture = webgl.loadTexture('./../assets/1.png')
+      webgl.render((deltaTime) => {
+        drawScene(programInfo, buffers, deltaTime)
+      })
+
+      function initBuffers() {
+        // position
+        const positions = createCube(2, 2, 2)
+
+        // texture coord
+        const textureCoordinates = [
+          // Front
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          1.0,
+          1.0,
+          0.0,
+          1.0,
+          // Back
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          1.0,
+          1.0,
+          0.0,
+          1.0,
+          // Top
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          1.0,
+          1.0,
+          0.0,
+          1.0,
+          // Bottom
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          1.0,
+          1.0,
+          0.0,
+          1.0,
+          // Right
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          1.0,
+          1.0,
+          0.0,
+          1.0,
+          // Left
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          1.0,
+          1.0,
+          0.0,
+          1.0
+        ]
+
+        // indices
+        const indices = [
+          0,
+          1,
+          2,
+          0,
+          2,
+          3, // front
+          4,
+          5,
+          6,
+          4,
+          6,
+          7, // back
+          8,
+          9,
+          10,
+          8,
+          10,
+          11, // top
+          12,
+          13,
+          14,
+          12,
+          14,
+          15, // bottom
+          16,
+          17,
+          18,
+          16,
+          18,
+          19, // right
+          20,
+          21,
+          22,
+          20,
+          22,
+          23 // left
+        ]
+
+        return {
+          position: webgl.createBuffer(new Float32Array(positions)),
+          textureCoord: webgl.createBuffer(new Float32Array(textureCoordinates)),
+          indices: webgl.createBuffer(new Uint16Array(indices), 'element_array_buffer')
+        }
+      }
+
+      let squareRotation = 0.0
+      function drawScene(programInfo, buffers, deltaTime) {
+        squareRotation += deltaTime
+
+        webgl.clear()
+
+        const projectionMatrix = mat4.create()
+        {
+          const fov = (45 * Math.PI) / 180
+          const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight
+          const zNear = 0.1
+          const zFar = 100.0
+
+          mat4.perspective(projectionMatrix, fov, aspect, zNear, zFar)
+        }
+
+        const modelViewMatrix = mat4.create()
+        {
+          mat4.translate(modelViewMatrix, modelViewMatrix, [-0.0, 0.0, -6.0])
+        }
+
+        mat4.rotate(modelViewMatrix, modelViewMatrix, squareRotation, [1, 0, 0])
+        mat4.rotate(modelViewMatrix, modelViewMatrix, squareRotation, [0, 1, 0])
+        mat4.rotate(modelViewMatrix, modelViewMatrix, squareRotation, [0, 0, 0.6])
+
+        // Bind position buffer
+        webgl.bindArrayBuffer({
+          buffer: buffers.position,
+          location: programInfo.attribLocations.vertexPosition,
+          numComponents: 3
+        })
+
+        // Bind color buffer
+        webgl.bindArrayBuffer({
+          buffer: buffers.textureCoord,
+          location: programInfo.attribLocations.textureCoord,
+          numComponents: 2
+        })
+
+        // Bind indices buffer
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.indices)
+
+        gl.useProgram(programInfo.program)
+
+        gl.activeTexture(gl.TEXTURE0)
+        gl.bindTexture(gl.TEXTURE_2D, texture)
+        gl.uniform1i(programInfo.uniformLocations.uSampler, 0)
+        gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, projectionMatrix)
+        gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, modelViewMatrix)
+
+        {
+          // Draw
+          const vertexCount = 36
+          const type = gl.UNSIGNED_SHORT
+          const offset = 0
+          gl.drawElements(gl.TRIANGLES, vertexCount, type, offset)
+        }
+      }
+    </script>
+  </body>
+</html>

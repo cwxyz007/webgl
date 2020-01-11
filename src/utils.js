@@ -10,49 +10,119 @@ export function warn(...args) {
  * @param {number[]} center
  */
 export function createCube(x, y, z, center = [0, 0, 0]) {
-  x = x/2
-  y = y /2
-  z = z/2
-  
+  x = x / 2
+  y = y / 2
+  z = z / 2
 
   const cubeFaceVertex = [
-    // front 
-    -x, -y, z,
-    x, -y, z,
-    x, y, z,
-    -x, y, z,
-    // back 
-    -x, -y, -z,
-    -x, y, -z,
-    x, y, -z,
-    x, -y, -z,
+    // front
+    -x,
+    -y,
+    z,
+    x,
+    -y,
+    z,
+    x,
+    y,
+    z,
+    -x,
+    y,
+    z,
+    // back
+    -x,
+    -y,
+    -z,
+    -x,
+    y,
+    -z,
+    x,
+    y,
+    -z,
+    x,
+    -y,
+    -z,
     // top
-    -x, y, -z,
-    -x, y, z,
-    x, y, z,
-    x, y, -z,
+    -x,
+    y,
+    -z,
+    -x,
+    y,
+    z,
+    x,
+    y,
+    z,
+    x,
+    y,
+    -z,
     // bottom
-    -x, -y, -z,
-    x, -y, -z,
-    x, -y, z,
-    -x, -y, z,
+    -x,
+    -y,
+    -z,
+    x,
+    -y,
+    -z,
+    x,
+    -y,
+    z,
+    -x,
+    -y,
+    z,
     // right
-    x, -y, -z,
-    x, y, -z,
-    x, y, z,
-    x,-y, z,
+    x,
+    -y,
+    -z,
+    x,
+    y,
+    -z,
+    x,
+    y,
+    z,
+    x,
+    -y,
+    z,
     // left
-    -x, -y, -z,
-    -x, -y, z,
-    -x, y, z,
-    -x, y, -z
+    -x,
+    -y,
+    -z,
+    -x,
+    -y,
+    z,
+    -x,
+    y,
+    z,
+    -x,
+    y,
+    -z
   ]
 
-  for (let idx = 0; idx < cubeFaceVertex.length; idx+=3) {
+  for (let idx = 0; idx < cubeFaceVertex.length; idx += 3) {
     cubeFaceVertex[idx] += center[0]
-    cubeFaceVertex[idx+1] += center[1]
-    cubeFaceVertex[idx+2] += center[2]
+    cubeFaceVertex[idx + 1] += center[1]
+    cubeFaceVertex[idx + 2] += center[2]
   }
 
   return cubeFaceVertex
+}
+
+/**
+ * 
+ * @param {*} url 
+ * @returns {Promise<HTMLImageElement>}
+ */
+export function loadImage(url) {
+  return new Promise((resolve, reject) => {
+    const image = new Image()
+    image.onerror = (err) => {
+      reject(err)
+    }
+    image.onload = () => {
+      resolve(image)
+    }
+
+    image.src = url
+  })
+}
+
+export function isPowerOf2(val) {
+  return val & (val - 1 == 0)
 }
